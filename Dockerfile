@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 MAINTAINER Dockerfiles
 
@@ -20,18 +20,33 @@ MAINTAINER Dockerfiles
 
 RUN apt-get update && apt-get install -y \
 	git \
-	python \
-	python-dev \
-	python-setuptools \
+	python3 \
+	python3-dev \
+	python3-setuptools \
+	python3-pip \
 	nginx \
+	language-pack-en \
+	libpq-dev \
+	vim \
 	supervisor \
 	sqlite3 \
   && rm -rf /var/lib/apt/lists/*
 
-RUN easy_install pip
+#RUN easy_install pip
+
+# Set the locale
+RUN locale-gen en_US.UTF-8  
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en  
+ENV LC_ALL en_US.UTF-8
+
+
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade pip
+\
 
 # install uwsgi now because it takes a little while
-RUN pip install uwsgi
+RUN pip3 install uwsgi
 
 # setup all the configfiles
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
@@ -41,16 +56,15 @@ COPY supervisor-app.conf /etc/supervisor/conf.d/
 # COPY requirements.txt and RUN pip install BEFORE adding the rest of your code, this will cause Docker's caching mechanism
 # to prevent re-installinig (all your) dependencies when you made a change a line or two in your app. 
 
-COPY app/requirements.txt /home/docker/code/app/
-RUN pip install -r /home/docker/code/app/requirements.txt
+# COPY app/requirements.txt /home/docker/code/app/
+COPY . /home/docker/code/
+RUN pip3 install -r /home/docker/code/app/requirements.txt
 
 # add (the rest of) our code
-COPY . /home/docker/code/
 
 # install django, normally you would remove this step because your project would already
 # be installed in the code/app/ directory
 RUN django-admin.py startproject website /home/docker/code/app/ 
-
 
 EXPOSE 80
 CMD ["supervisord", "-n"]
